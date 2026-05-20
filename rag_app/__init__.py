@@ -1,0 +1,1 @@
+"""First RAG application package."""

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First RAG</title>
+    <style>
+        :root {
+            --bg: #f5efe5;
+            --panel: rgba(255, 251, 245, 0.82);
+            --ink: #1f2933;
+            --accent: #bb3e03;
+            --line: rgba(31, 41, 51, 0.15);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(255, 224, 178, 0.8), transparent 28%),
+                linear-gradient(135deg, #f7f3ea 0%, #e8dcc9 100%);
+            min-height: 100vh;
+        }
+        .shell {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+        .hero, .panel {
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            background: var(--panel);
+            box-shadow: 0 18px 50px rgba(88, 59, 23, 0.12);
+        }
+        .hero {
+            margin-bottom: 24px;
+            padding: 28px;
+        }
+        h1 {
+            margin: 0 0 10px;
+            font-size: clamp(2.2rem, 5vw, 4.2rem);
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+        }
+        .hero p {
+            max-width: 58ch;
+            font-size: 1.05rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+        }
+        .panel {
+            padding: 20px;
+        }
+        h2 { margin-top: 0; font-size: 1.2rem; }
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: var(--accent);
+            color: #fffaf2;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        button.secondary {
+            background: transparent;
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+        input, textarea {
+            width: 100%;
+            margin: 8px 0 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            font: inherit;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        textarea { min-height: 140px; resize: vertical; }
+        .output {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            min-height: 64px;
+        }
+        .sources {
+            margin-top: 14px;
+            padding-left: 18px;
+        }
+        .meta {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        .settings {
+            display: grid;
+            gap: 6px;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <p class="meta">Local-first Retrieval-Augmented Generation</p>
+            <h1>Ask your files<br>better questions.</h1>
+            <p>Index documents from the local <code>data/</code> folder, upload fresh notes, and query them through a grounded Ollama-powered workflow.</p>
+        </section>
+
+        <section class="grid">
+            <div class="panel">
+                <h2>Ingest Documents</h2>
+                <p class="meta">Index files from the configured data directory into Chroma.</p>
+                <label><input id="rebuild" type="checkbox"> Rebuild the index from scratch</label>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button id="ingest-btn">Run Ingestion</button>
+                    <button id="sources-btn" class="secondary">Refresh Sources</button>
+                </div>
+                <div id="ingest-output" class="output"></div>
+                <ul id="sources-list" class="sources"></ul>
+            </div>
+
+            <div class="panel">
+                <h2>Upload File</h2>
+                <p class="meta">Supported: .txt, .md, .markdown</p>
+                <input id="upload-file" type="file" accept=".txt,.md,.markdown">
+                <button id="upload-btn">Upload</button>
+                <div id="upload-output" class="output"></div>
+            </div>
+
+            <div class="panel">
+                <h2>Ask a Question</h2>
+                <textarea id="question" placeholder="What do these documents say about..."></textarea>
+                <button id="chat-btn">Ask</button>
+                <div id="chat-output" class="output"></div>
+                <ul id="chat-sources" class="sources"></ul>
+            </div>
+
+            <div class="panel">
+                <h2>Runtime Settings</h2>
+                <div class="settings">
+                    {% for key, value in settings.items() %}
+                    <div><strong>{{ key }}</strong>: {{ value }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function ingest() {
+            const output = document.getElementById("ingest-output");
+            output.textContent = "Indexing documents...";
+            const rebuild = document.getElementById("rebuild").checked;
+            const response = await fetch("/ingest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rebuild })
+            });
+            const payload = await response.json();
+            output.textContent = response.ok
+                ? `Indexed ${payload.ingested_files} files into ${payload.ingested_chunks} chunks.`
+                : (payload.detail || "Ingestion failed.");
+            if (response.ok) {
+                renderSources(payload.sources);
+            }
+        }
+
+        async function loadSources() {
+            const response = await fetch("/sources");
+            const payload = await response.json();
+            renderSources(payload);
+        }
+
+        function renderSources(sources) {
+            const list = document.getElementById("sources-list");
+            list.innerHTML = "";
+            if (!sources.length) {
+                list.innerHTML = "<li>No indexed sources yet.</li>";
+                return;
+            }
+            for (const source of sources) {
+                const item = document.createElement("li");
+                item.textContent = `${source.source} (${source.chunk_count} chunks)`;
+                list.appendChild(item);
+            }
+        }
+
+        async function uploadFile() {
+            const output = document.getElementById("upload-output");
+            const fileInput = document.getElementById("upload-file");
+            if (!fileInput.files.length) {
+                output.textContent = "Choose a file first.";
+                return;
+            }
+            output.textContent = "Uploading...";
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            const response = await fetch("/upload", { method: "POST", body: formData });
+            const payload = await response.json();
+            output.textContent = response.ok
+                ? `Saved ${payload.filename} to ${payload.path}`
+                : (payload.detail || "Upload failed.");
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById("question").value.trim();
+            const output = document.getElementById("chat-output");
+            const sources = document.getElementById("chat-sources");
+            sources.innerHTML = "";
+            if (!question) {
+                output.textContent = "Enter a question first.";
+                return;
+            }
+            output.textContent = "Thinking...";
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                output.textContent = payload.detail || "Chat failed.";
+                return;
+            }
+            output.textContent = payload.answer;
+            for (const chunk of payload.retrieved_chunks) {
+                const item = document.createElement("li");
+                item.textContent = `${chunk.source} (chunk ${chunk.chunk_index}, score ${chunk.score.toFixed(4)})`;
+                sources.appendChild(item);
+            }
+        }
+
+        document.getElementById("ingest-btn").addEventListener("click", ingest);
+        document.getElementById("sources-btn").addEventListener("click", loadSources);
+        document.getElementById("upload-btn").addEventListener("click", uploadFile);
+        document.getElementById("chat-btn").addEventListener("click", askQuestion);
+        loadSources();
+    </script>
+</body>
+</html>
