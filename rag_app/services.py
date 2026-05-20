@@ -9,7 +9,7 @@ from rag_app.documents import load_documents
 from rag_app.models import ChatResponse, IngestResponse
 from rag_app.prompting import build_messages
 from rag_app.providers.base import ChatProvider, EmbeddingProvider
-from rag_app.vectorstore import ChromaVectorStore, StoredChunk
+from rag_app.vectorstore import StoredChunk, VectorStore
 
 
 @dataclass(slots=True)
@@ -17,7 +17,7 @@ class RagService:
     settings: Settings
     embedding_provider: EmbeddingProvider
     chat_provider: ChatProvider
-    vector_store: ChromaVectorStore
+    vector_store: VectorStore
 
     def ingest(self, rebuild: bool = False) -> IngestResponse:
         documents = load_documents(self.settings.data_dir)

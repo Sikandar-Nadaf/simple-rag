@@ -29,7 +29,9 @@ The app will be available at `http://127.0.0.1:8000`.
 ## Environment Variables
 
 - `RAG_DATA_DIR`: directory containing source files. Default: `data`
-- `RAG_CHROMA_DIR`: directory for Chroma persistence. Default: `.chroma`
+- `RAG_VECTOR_BACKEND`: vector backend to use. Default: `chroma`
+- `RAG_VECTOR_STORE_DIR`: directory for persistent vector store data. Default: `.chroma`
+- `RAG_CHROMA_DIR`: legacy fallback for Chroma persistence directory when `RAG_VECTOR_STORE_DIR` is unset
 - `RAG_COLLECTION_NAME`: Chroma collection name. Default: `rag_documents`
 - `RAG_OLLAMA_BASE_URL`: Ollama base URL. Default: `http://127.0.0.1:11434`
 - `RAG_EMBEDDING_MODEL`: Ollama embedding model. Default: `nomic-embed-text`
@@ -49,7 +51,7 @@ The app will be available at `http://127.0.0.1:8000`.
 ## Notes
 
 - v1 supports text and Markdown sources only.
+- Supported vector backends currently include `chroma` and `memory`.
 - If no relevant context is found, the app returns a bounded response instead of hallucinating from outside the indexed data.
-
 
 

@@ -1,8 +1,11 @@
-from rag_app.vectorstore import ChromaVectorStore, StoredChunk
+import pytest
+
+from rag_app.vectorstore import StoredChunk, create_vector_store
 
 
-def test_vectorstore_adds_and_lists_sources(tmp_path):
-    store = ChromaVectorStore(tmp_path / "chroma", "collection")
+@pytest.mark.parametrize("backend", ["chroma", "memory"])
+def test_vectorstore_adds_and_lists_sources(tmp_path, backend):
+    store = create_vector_store(backend, tmp_path / backend, "collection")
     added = store.add_chunks(
         [
             StoredChunk("a:0", "a.md", 0, "alpha rag", [1.0, 2.0]),
@@ -18,8 +21,9 @@ def test_vectorstore_adds_and_lists_sources(tmp_path):
     assert [(source.source, source.chunk_count) for source in sources] == [("a.md", 2), ("b.md", 1)]
 
 
-def test_vectorstore_queries_chunks(tmp_path):
-    store = ChromaVectorStore(tmp_path / "chroma", "collection")
+@pytest.mark.parametrize("backend", ["chroma", "memory"])
+def test_vectorstore_queries_chunks(tmp_path, backend):
+    store = create_vector_store(backend, tmp_path / backend, "collection")
     store.add_chunks(
         [
             StoredChunk("a:0", "a.md", 0, "retrieval augmented generation", [5.0, 2.0]),
@@ -32,3 +36,8 @@ def test_vectorstore_queries_chunks(tmp_path):
 
     assert len(results) == 1
     assert results[0].source == "a.md"
+
+
+def test_create_vector_store_rejects_unknown_backend(tmp_path):
+    with pytest.raises(ValueError):
+        create_vector_store("unknown", tmp_path / "unknown", "collection")

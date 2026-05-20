@@ -7,7 +7,7 @@ import pytest
 from rag_app.config import Settings
 from rag_app.providers.base import ChatProvider, EmbeddingProvider
 from rag_app.services import RagService
-from rag_app.vectorstore import ChromaVectorStore
+from rag_app.vectorstore import create_vector_store
 
 
 @dataclass(slots=True)
@@ -25,12 +25,13 @@ class FakeProvider(EmbeddingProvider, ChatProvider):
 @pytest.fixture
 def settings(tmp_path):
     data_dir = tmp_path / "data"
-    chroma_dir = tmp_path / "chroma"
+    vector_store_dir = tmp_path / "vectorstore"
     data_dir.mkdir()
-    chroma_dir.mkdir()
+    vector_store_dir.mkdir()
     return Settings(
         data_dir=data_dir,
-        chroma_dir=chroma_dir,
+        vector_backend="memory",
+        vector_store_dir=vector_store_dir,
         collection_name="test_collection",
         ollama_base_url="http://localhost:11434",
         embedding_model="fake-embed",
@@ -44,7 +45,11 @@ def settings(tmp_path):
 @pytest.fixture
 def fake_service(settings):
     provider = FakeProvider()
-    store = ChromaVectorStore(settings.chroma_dir, settings.collection_name)
+    store = create_vector_store(
+        backend=settings.vector_backend,
+        persist_directory=settings.vector_store_dir,
+        collection_name=settings.collection_name,
+    )
     return RagService(
         settings=settings,
         embedding_provider=provider,

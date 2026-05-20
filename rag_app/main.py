@@ -18,7 +18,7 @@ from rag_app.models import (
 )
 from rag_app.providers.ollama import OllamaProvider
 from rag_app.services import RagService
-from rag_app.vectorstore import ChromaVectorStore
+from rag_app.vectorstore import create_vector_store
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -32,8 +32,9 @@ def build_service(settings: Settings) -> RagService:
         embedding_model=settings.embedding_model,
         chat_model=settings.chat_model,
     )
-    vector_store = ChromaVectorStore(
-        persist_directory=settings.chroma_dir,
+    vector_store = create_vector_store(
+        backend=settings.vector_backend,
+        persist_directory=settings.vector_store_dir,
         collection_name=settings.collection_name,
     )
     return RagService(

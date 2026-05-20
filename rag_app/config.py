@@ -13,7 +13,8 @@ def _int_env(name: str, default: int) -> int:
 @dataclass(slots=True)
 class Settings:
     data_dir: Path
-    chroma_dir: Path
+    vector_backend: str
+    vector_store_dir: Path
     collection_name: str
     ollama_base_url: str
     embedding_model: str
@@ -26,7 +27,10 @@ class Settings:
     def from_env(cls) -> "Settings":
         return cls(
             data_dir=Path(os.getenv("RAG_DATA_DIR", "data")),
-            chroma_dir=Path(os.getenv("RAG_CHROMA_DIR", ".chroma")),
+            vector_backend=os.getenv("RAG_VECTOR_BACKEND", "chroma"),
+            vector_store_dir=Path(
+                os.getenv("RAG_VECTOR_STORE_DIR", os.getenv("RAG_CHROMA_DIR", ".chroma"))
+            ),
             collection_name=os.getenv("RAG_COLLECTION_NAME", "rag_documents"),
             ollama_base_url=os.getenv("RAG_OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
             embedding_model=os.getenv("RAG_EMBEDDING_MODEL", "nomic-embed-text"),
@@ -38,12 +42,13 @@ class Settings:
 
     def ensure_directories(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.chroma_dir.mkdir(parents=True, exist_ok=True)
+        self.vector_store_dir.mkdir(parents=True, exist_ok=True)
 
     def public_dict(self) -> dict[str, object]:
         return {
             "data_dir": str(self.data_dir),
-            "chroma_dir": str(self.chroma_dir),
+            "vector_backend": self.vector_backend,
+            "vector_store_dir": str(self.vector_store_dir),
             "collection_name": self.collection_name,
             "ollama_base_url": self.ollama_base_url,
             "embedding_model": self.embedding_model,

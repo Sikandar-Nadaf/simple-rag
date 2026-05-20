@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import chromadb
 from chromadb.api.models.Collection import Collection
@@ -17,6 +18,20 @@ class StoredChunk:
     chunk_index: int
     text: str
     embedding: list[float]
+
+
+class VectorStore(Protocol):
+    def add_chunks(self, chunks: list[StoredChunk], rebuild: bool = False) -> int:
+        ...
+
+    def query(self, query_embedding: list[float], top_k: int) -> list[RetrievedChunk]:
+        ...
+
+    def list_sources(self) -> list[SourceInfo]:
+        ...
+
+    def count_chunks(self) -> int:
+        ...
 
 
 class ChromaVectorStore:
@@ -80,3 +95,64 @@ class ChromaVectorStore:
 
     def count_chunks(self) -> int:
         return int(self._collection.count())
+
+
+class InMemoryVectorStore:
+    def __init__(self) -> None:
+        self._chunks: dict[str, StoredChunk] = {}
+
+    def add_chunks(self, chunks: list[StoredChunk], rebuild: bool = False) -> int:
+        if rebuild:
+            self._chunks.clear()
+        for chunk in chunks:
+            self._chunks[chunk.chunk_id] = chunk
+        return len(chunks)
+
+    def query(self, query_embedding: list[float], top_k: int) -> list[RetrievedChunk]:
+        ranked_chunks = sorted(
+            self._chunks.values(),
+            key=lambda chunk: _euclidean_distance(query_embedding, chunk.embedding),
+        )
+        return [
+            RetrievedChunk(
+                source=chunk.source,
+                chunk_index=chunk.chunk_index,
+                text=chunk.text,
+                score=_euclidean_distance(query_embedding, chunk.embedding),
+            )
+            for chunk in ranked_chunks[:top_k]
+        ]
+
+    def list_sources(self) -> list[SourceInfo]:
+        counts = Counter(chunk.source for chunk in self._chunks.values())
+        return [
+            SourceInfo(source=source, chunk_count=count)
+            for source, count in sorted(counts.items())
+        ]
+
+    def count_chunks(self) -> int:
+        return len(self._chunks)
+
+
+def create_vector_store(
+    backend: str,
+    persist_directory: Path,
+    collection_name: str,
+) -> VectorStore:
+    normalized_backend = backend.strip().lower()
+    if normalized_backend == "chroma":
+        return ChromaVectorStore(
+            persist_directory=persist_directory,
+            collection_name=collection_name,
+        )
+    if normalized_backend == "memory":
+        return InMemoryVectorStore()
+    raise ValueError(
+        f"Unsupported vector backend '{backend}'. Supported backends: chroma, memory."
+    )
+
+
+def _euclidean_distance(left: list[float], right: list[float]) -> float:
+    if len(left) != len(right):
+        raise ValueError("Embedding dimensions must match for similarity search")
+    return sum((lhs - rhs) ** 2 for lhs, rhs in zip(left, right)) ** 0.5
