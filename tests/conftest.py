@@ -34,6 +34,8 @@ def settings(tmp_path):
         vector_backend="memory",
         vector_store_dir=vector_store_dir,
         chunk_strategy="fixed",
+        embedding_backend="simple",
+        chat_backend="echo",
         collection_name="test_collection",
         ollama_base_url="http://localhost:11434",
         embedding_model="fake-embed",

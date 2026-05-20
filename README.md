@@ -32,6 +32,8 @@ The app will be available at `http://127.0.0.1:8000`.
 - `RAG_VECTOR_BACKEND`: vector backend to use. Default: `chroma`
 - `RAG_VECTOR_STORE_DIR`: directory for persistent vector store data. Default: `.chroma`
 - `RAG_CHROMA_DIR`: legacy fallback for Chroma persistence directory when `RAG_VECTOR_STORE_DIR` is unset
+- `RAG_EMBEDDING_BACKEND`: embedding backend to use. Default: `ollama`
+- `RAG_CHAT_BACKEND`: chat backend to use. Default: `ollama`
 - `RAG_COLLECTION_NAME`: Chroma collection name. Default: `rag_documents`
 - `RAG_OLLAMA_BASE_URL`: Ollama base URL. Default: `http://127.0.0.1:11434`
 - `RAG_EMBEDDING_MODEL`: Ollama embedding model. Default: `nomic-embed-text`
@@ -54,5 +56,6 @@ The app will be available at `http://127.0.0.1:8000`.
 - v1 supports text and Markdown sources only.
 - Supported vector backends currently include `chroma` and `memory`.
 - Supported chunking strategies currently include `fixed` and `paragraph`.
+- Supported embedding backends currently include `ollama` and `simple`.
+- Supported chat backends currently include `ollama` and `echo`.
 - If no relevant context is found, the app returns a bounded response instead of hallucinating from outside the indexed data.
-

@@ -17,7 +17,7 @@ from rag_app.models import (
     SourceInfo,
     UploadResponse,
 )
-from rag_app.providers.ollama import OllamaProvider
+from rag_app.providers.factory import create_chat_provider, create_embedding_provider
 from rag_app.services import RagService
 from rag_app.vectorstore import create_vector_store
 
@@ -28,7 +28,14 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 def build_service(settings: Settings) -> RagService:
     settings.ensure_directories()
-    provider = OllamaProvider(
+    embedding_provider = create_embedding_provider(
+        backend=settings.embedding_backend,
+        base_url=settings.ollama_base_url,
+        embedding_model=settings.embedding_model,
+        chat_model=settings.chat_model,
+    )
+    chat_provider = create_chat_provider(
+        backend=settings.chat_backend,
         base_url=settings.ollama_base_url,
         embedding_model=settings.embedding_model,
         chat_model=settings.chat_model,
@@ -45,8 +52,8 @@ def build_service(settings: Settings) -> RagService:
     )
     return RagService(
         settings=settings,
-        embedding_provider=provider,
-        chat_provider=provider,
+        embedding_provider=embedding_provider,
+        chat_provider=chat_provider,
         chunker=chunker,
         vector_store=vector_store,
     )

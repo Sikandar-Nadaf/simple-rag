@@ -16,6 +16,8 @@ class Settings:
     vector_backend: str
     vector_store_dir: Path
     chunk_strategy: str
+    embedding_backend: str
+    chat_backend: str
     collection_name: str
     ollama_base_url: str
     embedding_model: str
@@ -33,6 +35,8 @@ class Settings:
                 os.getenv("RAG_VECTOR_STORE_DIR", os.getenv("RAG_CHROMA_DIR", ".chroma"))
             ),
             chunk_strategy=os.getenv("RAG_CHUNK_STRATEGY", "fixed"),
+            embedding_backend=os.getenv("RAG_EMBEDDING_BACKEND", "ollama"),
+            chat_backend=os.getenv("RAG_CHAT_BACKEND", "ollama"),
             collection_name=os.getenv("RAG_COLLECTION_NAME", "rag_documents"),
             ollama_base_url=os.getenv("RAG_OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
             embedding_model=os.getenv("RAG_EMBEDDING_MODEL", "nomic-embed-text"),
@@ -52,6 +56,8 @@ class Settings:
             "vector_backend": self.vector_backend,
             "vector_store_dir": str(self.vector_store_dir),
             "chunk_strategy": self.chunk_strategy,
+            "embedding_backend": self.embedding_backend,
+            "chat_backend": self.chat_backend,
             "collection_name": self.collection_name,
             "ollama_base_url": self.ollama_base_url,
             "embedding_model": self.embedding_model,
