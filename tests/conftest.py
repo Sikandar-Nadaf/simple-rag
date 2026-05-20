@@ -7,6 +7,7 @@ import pytest
 from rag_app.config import Settings
 from rag_app.providers.base import ChatProvider, EmbeddingProvider
 from rag_app.services import RagService
+from rag_app.chunking import create_chunker
 from rag_app.vectorstore import create_vector_store
 
 
@@ -32,6 +33,7 @@ def settings(tmp_path):
         data_dir=data_dir,
         vector_backend="memory",
         vector_store_dir=vector_store_dir,
+        chunk_strategy="fixed",
         collection_name="test_collection",
         ollama_base_url="http://localhost:11434",
         embedding_model="fake-embed",
@@ -45,6 +47,11 @@ def settings(tmp_path):
 @pytest.fixture
 def fake_service(settings):
     provider = FakeProvider()
+    chunker = create_chunker(
+        strategy=settings.chunk_strategy,
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
+    )
     store = create_vector_store(
         backend=settings.vector_backend,
         persist_directory=settings.vector_store_dir,
@@ -54,5 +61,6 @@ def fake_service(settings):
         settings=settings,
         embedding_provider=provider,
         chat_provider=provider,
+        chunker=chunker,
         vector_store=store,
     )

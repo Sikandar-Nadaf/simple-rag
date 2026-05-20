@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from rag_app.chunking import chunk_text
+from rag_app.chunking import ChunkingStrategy
 from rag_app.config import Settings
 from rag_app.documents import load_documents
 from rag_app.models import ChatResponse, IngestResponse
@@ -17,19 +17,14 @@ class RagService:
     settings: Settings
     embedding_provider: EmbeddingProvider
     chat_provider: ChatProvider
+    chunker: ChunkingStrategy
     vector_store: VectorStore
 
     def ingest(self, rebuild: bool = False) -> IngestResponse:
         documents = load_documents(self.settings.data_dir)
         pending_chunks: list[tuple[str, int, str]] = []
         for document in documents:
-            for chunk_index, text in enumerate(
-                chunk_text(
-                    document.text,
-                    chunk_size=self.settings.chunk_size,
-                    chunk_overlap=self.settings.chunk_overlap,
-                )
-            ):
+            for chunk_index, text in enumerate(self.chunker.chunk(document.text)):
                 pending_chunks.append((document.source, chunk_index, text))
 
         embeddings = (

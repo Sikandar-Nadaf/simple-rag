@@ -6,6 +6,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from rag_app.chunking import create_chunker
 from rag_app.config import Settings
 from rag_app.models import (
     ChatRequest,
@@ -32,6 +33,11 @@ def build_service(settings: Settings) -> RagService:
         embedding_model=settings.embedding_model,
         chat_model=settings.chat_model,
     )
+    chunker = create_chunker(
+        strategy=settings.chunk_strategy,
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
+    )
     vector_store = create_vector_store(
         backend=settings.vector_backend,
         persist_directory=settings.vector_store_dir,
@@ -41,6 +47,7 @@ def build_service(settings: Settings) -> RagService:
         settings=settings,
         embedding_provider=provider,
         chat_provider=provider,
+        chunker=chunker,
         vector_store=vector_store,
     )
 

@@ -36,6 +36,7 @@ The app will be available at `http://127.0.0.1:8000`.
 - `RAG_OLLAMA_BASE_URL`: Ollama base URL. Default: `http://127.0.0.1:11434`
 - `RAG_EMBEDDING_MODEL`: Ollama embedding model. Default: `nomic-embed-text`
 - `RAG_CHAT_MODEL`: Ollama chat model. Default: `llama3.1`
+- `RAG_CHUNK_STRATEGY`: chunking strategy to use. Default: `fixed`
 - `RAG_CHUNK_SIZE`: chunk size in characters. Default: `900`
 - `RAG_CHUNK_OVERLAP`: chunk overlap in characters. Default: `150`
 - `RAG_TOP_K`: number of retrieved chunks for answers. Default: `4`
@@ -52,6 +53,6 @@ The app will be available at `http://127.0.0.1:8000`.
 
 - v1 supports text and Markdown sources only.
 - Supported vector backends currently include `chroma` and `memory`.
+- Supported chunking strategies currently include `fixed` and `paragraph`.
 - If no relevant context is found, the app returns a bounded response instead of hallucinating from outside the indexed data.
-
 
